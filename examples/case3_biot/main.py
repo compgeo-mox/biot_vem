@@ -17,7 +17,7 @@ def error(x, x_i, mass):
     return np.sqrt(delta @ mass @ delta) / (norm if norm > 1e-10 else 1)
 
 
-def main(sd, folder, file_name):
+def main(sd, folder, file_name, mu, lambda_):
     sd.compute_geometry()
     key = "biot"
 
@@ -28,7 +28,7 @@ def main(sd, folder, file_name):
     max_iter = 1e2
 
     # return the exact solution and related rhs
-    mu, lambda_, alpha, s0 = 0.5, 1, 1, 1
+    alpha, s0 = 1, 1
     _, u_ex, q_ex, p_ex, f_u, f_q = exact_sol_biot(mu, lambda_, alpha, s0)
 
     perm = np.ones(sd.num_cells)
@@ -154,59 +154,79 @@ def main(sd, folder, file_name):
 if __name__ == "__main__":
     folder = os.path.dirname(os.path.abspath(__file__))
 
-    # construct the einstein grids
-    file_name = ["H2.svg", "H3.svg", "H4.svg", "H5.svg"]
-    einstein = [
-        pg.EinSteinGrid(os.path.join(folder, "../grids/", fn)) for fn in file_name
-    ]
-    einstein_names = [fn[:-4] for fn in file_name]
+    mus = [1, 10, 100, 1000]
+    lambdas = [1, 10, 100, 1000]
 
-    # construct the voronoi grids
-    num_pts = [40, 80, 160, 320]
-    seeds = [1, 0, 4, 12]
-    voronoi = [
-        pg.VoronoiGrid(num_pt, seed=seed) for num_pt, seed in zip(num_pts, seeds)
-    ]
-    voronoi_names = ["voro_" + str(num_pt) for num_pt in num_pts]
+    for mu in mus:
+        for lambda_ in lambdas:
+            # construct the einstein grids
+            file_name = ["H2.svg", "H3.svg", "H4.svg", "H5.svg"]
+            einstein = [
+                pg.EinSteinGrid(os.path.join(folder, "../grids/", fn))
+                for fn in file_name
+            ]
+            einstein_names = [fn[:-4] for fn in file_name]
 
-    # reference simplicial grids
-    mesh_sizes = [0.1, 0.05, 0.025, 0.0125]
-    simplex = [pg.unit_grid(2, mesh_size, as_mdg=False) for mesh_size in mesh_sizes]
-    simplex_names = ["simplex_" + str(mesh_size) for mesh_size in mesh_sizes]
+            # construct the voronoi grids
+            num_pts = [40, 80, 160, 320]
+            seeds = [1, 0, 4, 12]
+            voronoi = [
+                pg.VoronoiGrid(num_pt, seed=seed)
+                for num_pt, seed in zip(num_pts, seeds)
+            ]
+            voronoi_names = ["voro_" + str(num_pt) for num_pt in num_pts]
 
-    # do the computation for the normal grids
-    sds = einstein + voronoi + simplex
-    grid_names = einstein_names + voronoi_names + simplex_names
-    err_1 = [main(sd, folder, grid_name) for sd, grid_name in zip(sds, grid_names)]
-    np.savetxt(os.path.join(folder, "err_1.txt"), err_1)
+            # reference simplicial grids
+            mesh_sizes = [0.1, 0.05, 0.025, 0.0125]
+            simplex = [
+                pg.unit_grid(2, mesh_size, as_mdg=False) for mesh_size in mesh_sizes
+            ]
+            simplex_names = ["simplex_" + str(mesh_size) for mesh_size in mesh_sizes]
 
-    # perform a regularization for the einstein grids
-    einstein_reg1 = [
-        pg.graph_laplace_regularization(sd, sliding=False) for sd in einstein
-    ]
-    einstein_names_reg1 = [name + "_reg1" for name in einstein_names]
+            # do the computation for the normal grids
+            sds = einstein + voronoi + simplex
+            grid_names = einstein_names + voronoi_names + simplex_names
+            err_1 = [
+                main(sd, folder, grid_name, mu, lambda_)
+                for sd, grid_name in zip(sds, grid_names)
+            ]
+            file_name_err = str(mu) + "_" + str(lambda_) + "_err_1.txt"
+            np.savetxt(os.path.join(folder, file_name_err), err_1)
 
-    # do the computation for the einstein regularized grids
-    sds = einstein_reg1
-    grid_names = einstein_names_reg1
-    err_2 = [main(sd, folder, grid_name) for sd, grid_name in zip(sds, grid_names)]
+            # perform a regularization for the einstein grids
+            einstein_reg1 = [
+                pg.graph_laplace_regularization(sd, sliding=False) for sd in einstein
+            ]
+            einstein_names_reg1 = [name + "_reg1" for name in einstein_names]
 
-    # perform a regularization for the voronoi grids
-    [sd.compute_geometry() for sd in voronoi]
-    voronoi_reg1 = [pg.graph_laplace_regularization(sd) for sd in voronoi]
-    voronoi_names_reg1 = [name + "_reg1" for name in voronoi_names]
+            # do the computation for the einstein regularized grids
+            sds = einstein_reg1
+            grid_names = einstein_names_reg1
+            err_2 = [
+                main(sd, folder, grid_name, mu, lambda_)
+                for sd, grid_name in zip(sds, grid_names)
+            ]
 
-    voronoi_reg2 = [pg.graph_laplace_dual_regularization(sd) for sd in voronoi]
-    voronoi_names_reg2 = [name + "_reg2" for name in voronoi_names]
+            # perform a regularization for the voronoi grids
+            [sd.compute_geometry() for sd in voronoi]
+            voronoi_reg1 = [pg.graph_laplace_regularization(sd) for sd in voronoi]
+            voronoi_names_reg1 = [name + "_reg1" for name in voronoi_names]
 
-    num_reg = 5
-    voronoi_reg3 = [pg.lloyd_regularization(sd, num_reg) for sd in voronoi]
-    voronoi_names_reg3 = [name + "_reg3" for name in voronoi_names]
+            voronoi_reg2 = [pg.graph_laplace_dual_regularization(sd) for sd in voronoi]
+            voronoi_names_reg2 = [name + "_reg2" for name in voronoi_names]
 
-    # do the computation for the voronoi regularized grids
-    sds = voronoi_reg1 + voronoi_reg2 + voronoi_reg3
-    grid_names = voronoi_names_reg1 + voronoi_names_reg2 + voronoi_names_reg3
-    err_3 = [main(sd, folder, grid_name) for sd, grid_name in zip(sds, grid_names)]
+            num_reg = 5
+            voronoi_reg3 = [pg.lloyd_regularization(sd, num_reg) for sd in voronoi]
+            voronoi_names_reg3 = [name + "_reg3" for name in voronoi_names]
 
-    err = err_2 + err_3
-    np.savetxt(os.path.join(folder, "err_2.txt"), err)
+            # do the computation for the voronoi regularized grids
+            sds = voronoi_reg1 + voronoi_reg2 + voronoi_reg3
+            grid_names = voronoi_names_reg1 + voronoi_names_reg2 + voronoi_names_reg3
+            err_3 = [
+                main(sd, folder, grid_name, mu, lambda_)
+                for sd, grid_name in zip(sds, grid_names)
+            ]
+
+            err = err_2 + err_3
+            file_name_err = str(mu) + "_" + str(lambda_) + "_err_2.txt"
+            np.savetxt(os.path.join(folder, file_name_err), err)

@@ -47,7 +47,7 @@ def plot_error(blocks_all, data_file_all, out_file, linestyle_all, h_pos=2):
     ax.text(pos_h, 1.3 * np.power(pos_h, 2), "$\mathcal{O}(h^2)$", fontsize=20)
 
     ax.set_xlabel("$h$")
-    ax.set_title("$L^2$-error")
+    ax.set_title("$L^2$-error $u$")
     # plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.1), ncol=10)
 
     file_name = os.path.join(folder, out_file) + ".pdf"
@@ -105,17 +105,17 @@ def plot_cond(blocks_all, data_file_all, out_file, linestyle_all, h_pos=2):
 if __name__ == "__main__":
 
     blocks_1 = {
-        "einstein": slice(0, 4),
-        "voronoi": slice(4, 8),
-        "simplices": slice(8, 12),
+        "Monotile": slice(0, 4),
+        "Voronoi": slice(4, 8),
+        "Simplices": slice(8, 12),
     }
     linestyle_1 = "-"
 
     blocks_2 = {
-        "einstein_reg1": slice(0, 4),
-        "voronoi_reg1": slice(4, 8),
-        "voronoi_reg2": slice(8, 12),
-        "voronoi_lloyd": slice(12, 16),
+        "Monotile reg1": slice(0, 4),
+        "Voronoi reg1": slice(4, 8),
+        "Voronoi reg2": slice(8, 12),
+        "Voronoi Lloyd": slice(12, 16),
     }
     linestyle_2 = "--"
 

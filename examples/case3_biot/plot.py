@@ -15,7 +15,15 @@ mpl.rcParams["axes.linewidth"] = 1.5
 
 
 def plot_error(
-    blocks_all, data_file_all, out_file, linestyle_all, err_pos, title, factor, h_pos=3
+    blocks_all,
+    data_file_all,
+    out_file,
+    linestyle_all,
+    err_pos,
+    title,
+    factor,
+    order,
+    h_pos=4,
 ):
     folder = os.path.dirname(os.path.abspath(__file__))
     fig, ax = plt.subplots()
@@ -40,14 +48,14 @@ def plot_error(
     h = np.array([np.amin(h_all), np.amax(h_all)])
     ax.loglog(
         h,
-        factor * h,
+        factor * np.power(h, order),
         "-.",
         alpha=0.5,
         color="black",
     )
     pos_h = np.average(h)
-    text = "$\mathcal{O}(h)$"
-    ax.text(pos_h, 0.65 * factor * pos_h, text, fontsize=20)
+    text = "$\mathcal{O}(h^{" + str(order) + "})$" if order > 1 else "$\mathcal{O}(h)$"
+    ax.text(pos_h, 0.65 * factor * np.power(pos_h, order), text, fontsize=20)
 
     ax.set_xlabel("$h$")
     ax.set_title("$L^2$-error " + title)
@@ -98,19 +106,32 @@ if __name__ == "__main__":
     plot_error(
         (blocks_1, blocks_2),
         ("err_1.txt", "err_2.txt"),
-        "err_darcy_flux",
+        "err_darcy_displacement_biot",
         (linestyle_1, linestyle_2),
         0,
-        "q",
-        0.2,
+        "u",
+        3,
+        2,
     )
 
     plot_error(
         (blocks_1, blocks_2),
         ("err_1.txt", "err_2.txt"),
-        "err_darcy_pressure",
+        "err_darcy_flux_biot",
         (linestyle_1, linestyle_2),
         1,
+        "q",
+        0.2,
+        1,
+    )
+
+    plot_error(
+        (blocks_1, blocks_2),
+        ("err_1.txt", "err_2.txt"),
+        "err_darcy_pressure_biot",
+        (linestyle_1, linestyle_2),
+        2,
         "p",
+        1,
         1,
     )
